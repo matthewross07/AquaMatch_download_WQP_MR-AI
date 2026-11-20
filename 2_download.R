@@ -144,6 +144,29 @@ p2_targets_list <- list(
                           }),
                 by = "CharacteristicName")
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_site_counts_phyco,
+    command = p1_wqp_inventory_aoi_phyco %>%
+      # Hold onto location info, grid_id, characteristic, and provider data
+      # and use them for grouping
+      group_by(MonitoringLocationIdentifier, lon, lat, datum, grid_id,
+               CharacteristicName, ProviderName) %>%
+      # Count the number of rows per group
+      summarize(results_count = sum(resultCount, na.rm = TRUE),
+                .groups = "drop") %>%
+      # Add the overarching parameter names to the dataset
+      left_join(x = .,
+                y = p1_wqp_params_phyco %>%
+                  map2_df(.x,
+                          .y = names(.),
+                          .f = ~{
+                            tibble(CharacteristicName = .x,
+                                   parameter = .y)
+                          }),
+                by = "CharacteristicName")
+  ),
   
   
   # Export site counts ------------------------------------------------------
@@ -222,6 +245,19 @@ p2_targets_list <- list(
     cue = tar_cue("always"),
     error = "stop"
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_site_counts_phyco_file,
+    command = export_single_file(target = p2_site_counts_phyco,
+                                 drive_path = p0_phyco_output_path,
+                                 stable = p0_workflow_config$phyco_create_stable,
+                                 google_email = p0_workflow_config$google_email,
+                                 date_stamp = p0_date_stamp,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
+    cue = tar_cue("always"),
+    error = "stop"
+  ),
   
   
   # Create download groups --------------------------------------------------
@@ -291,6 +327,18 @@ p2_targets_list <- list(
   tar_target(
     name = p2_site_counts_grouped_sdd,
     command = add_download_groups(p2_site_counts_sdd, 
+                                  max_sites = 100,
+                                  max_results = 250000) %>%
+      group_by(download_grp) %>%
+      tar_group(),
+    iteration = "group",
+    packages = c("tidyverse", "MESS")
+  ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_site_counts_grouped_phyco,
+    command = add_download_groups(p2_site_counts_phyco, 
                                   max_sites = 100,
                                   max_results = 250000) %>%
       group_by(download_grp) %>%
@@ -386,6 +434,18 @@ p2_targets_list <- list(
     format = "feather",
     packages = c("dataRetrieval", "tidyverse", "sf", "retry")
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_wqp_data_aoi_phyco,
+    command = fetch_wqp_data(p2_site_counts_grouped_phyco,
+                             char_names = unique(p2_site_counts_grouped_phyco$CharacteristicName),
+                             wqp_args = p0_wqp_args),
+    pattern = map(p2_site_counts_grouped_phyco),
+    error = "continue",
+    format = "feather",
+    packages = c("dataRetrieval", "tidyverse", "sf", "retry")
+  ),
   
   
   # Remove Personal Information from WQP data text columns ------------------
@@ -438,6 +498,14 @@ p2_targets_list <- list(
   tar_target(
     name = p2_wqp_data_aoi_tc_anon,
     command = anonymize_text(p2_wqp_data_aoi_tc),
+    packages = "tidyverse",
+    error = "stop"
+  ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_wqp_data_aoi_phyco_anon,
+    command = anonymize_text(p2_wqp_data_aoi_phyco),
     packages = "tidyverse",
     error = "stop"
   ),
@@ -528,6 +596,21 @@ p2_targets_list <- list(
     cue = tar_cue("always"),
     error = "stop"
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p2_wqp_data_aoi_phyco_file,
+    command = export_single_file(target = p2_wqp_data_aoi_phyco_anon,
+                                 drive_path = p0_phyco_output_path,
+                                 stable = p0_workflow_config$phyco_create_stable,
+                                 google_email = p0_workflow_config$google_email,
+                                 date_stamp = p0_date_stamp,
+                                 feather = TRUE,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
+    packages = c("tidyverse", "googledrive", "feather"),
+    cue = tar_cue("always"),
+    error = "stop"
+  ),
   
   
   # Summarize WQP pull ------------------------------------------------------
@@ -580,6 +663,14 @@ p2_targets_list <- list(
     command = summarize_wqp_download(wqp_inventory_summary_csv = p1_wqp_inventory_tc_summary_csv,
                                      wqp_data = p2_wqp_data_aoi_tc_anon,
                                      "2_download/log/tc_summary_wqp_data.csv")
+  ),
+
+  # Phycocyanin
+  tar_file(
+    name = p2_wqp_data_phyco_summary_csv,
+    command = summarize_wqp_download(wqp_inventory_summary_csv = p1_wqp_inventory_phyco_summary_csv,
+                                     wqp_data = p2_wqp_data_aoi_phyco_anon,
+                                     "2_download/log/phyco_summary_wqp_data.csv")
   ),
   
   
@@ -677,6 +768,24 @@ p2_targets_list <- list(
     cue = tar_cue("always"),
     packages = c("tidyverse", "googledrive")
   ), 
+
+  # Phycocyanin
+  tar_file_read(
+    name = p2_phyco_drive_ids,
+    command = get_file_ids(google_email = p0_workflow_config$google_email,
+                           drive_folder = p0_phyco_output_path,
+                           file_path = "2_download/out/phyco_drive_ids.csv",
+                           depend = c(p1_wqp_params_file_phyco,
+                                      p1_char_names_crosswalk_phyco_file,
+                                      p1_wqp_inventory_aoi_phyco_file,
+                                      p2_site_counts_phyco_file,
+                                      p2_wqp_data_aoi_phyco_file),
+                           local_drive = isTRUE(p0_workflow_config$local_drive)
+    ),
+    read = read_csv(file = !!.x),
+    cue = tar_cue("always"),
+    packages = c("tidyverse", "googledrive")
+  ),
   
   # General purpose
   tar_file_read(
@@ -684,7 +793,8 @@ p2_targets_list <- list(
     command = get_file_ids(google_email = p0_workflow_config$google_email,
                            drive_folder = p0_general_output_path,
                            file_path = "2_download/out/general_drive_ids.csv",
-                           depend = p1_global_grid_file
+                           depend = p1_global_grid_file,
+                           local_drive = isTRUE(p0_workflow_config$local_drive)
     ),
     read = read_csv(file = !!.x),
     cue = tar_cue("always"),

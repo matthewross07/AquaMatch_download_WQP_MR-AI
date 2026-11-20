@@ -45,10 +45,10 @@ library(targets)
 
 # Google Drive auth -------------------------------------------------------
 
-# Confirm Google Drive is authorized locally
-drive_auth()
-
-2
+# Confirm Google Drive is authorized locally unless running in local_mode
+if (!isTRUE(config::get(config = "local_mode")$local_drive)) {
+  drive_auth()
+}
 
 # Run pipeline ------------------------------------------------------------
 

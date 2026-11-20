@@ -1,5 +1,7 @@
-# AquaMatch_download_WQP
-Primary repository contact: Matthew Brousil (matthew.brousil AT colostate.edu)
+# AquaMatch_download_WQP (MR-AI Fork)
+Experimental MR-AI fork (`matthewross07/AquaMatch_download_WQP_MR-AI`) of [AquaSat/AquaMatch_download_WQP](https://github.com/AquaSat/AquaMatch_download_WQP), extending the WQP inventory and download workflow for **phycocyanin** (`phycocyanin` in `1_inventory/cfg/wqp_codes.yml`) and adding a `local_mode` profile (`../drive_mirror/aquamatch_download_wqp/`) for reproducible local runs without Google Drive OAuth.
+
+Primary upstream repository contact: Matthew Brousil (matthew.brousil AT colostate.edu)
 
 This repository is covered by the MIT use license. We request that all downstream uses of this work be available to the public when possible.
 

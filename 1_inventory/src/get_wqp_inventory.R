@@ -57,13 +57,21 @@ inventory_wqp <- function(grid, char_names, wqp_args = NULL, max_tries = 3){
   }) %>%
     bind_rows()
   
+  # Skip site metadata query when grid cell has no records
+  if (nrow(wqp_inventory) == 0) {
+    return(wqp_inventory %>%
+             mutate(HorizontalCoordinateReferenceSystemDatumName = character()))
+  }
+  
   # Fetch missing CRS information from WQP. Note that an empty query will not
   # contain CRS information. In the event that the lines below throw an error, 
   # "Column `HorizontalCoordinateReferenceSystemDatumName` doesn't exist", return
   # an empty data frame for the site location metadata. 
   site_location_metadata <- tryCatch(
-    whatWQPsites(bBox = c(bbox$xmin, bbox$ymin, bbox$xmax, bbox$ymax)) %>%
+    whatWQPsites(bBox = c(bbox$xmin, bbox$ymin, bbox$xmax, bbox$ymax),
+                 characteristicName = char_names) %>%
       select(MonitoringLocationIdentifier, HorizontalCoordinateReferenceSystemDatumName) %>%
+      distinct(MonitoringLocationIdentifier, .keep_all = TRUE) %>%
       filter(MonitoringLocationIdentifier %in% wqp_inventory$MonitoringLocationIdentifier),
     error = function(e){
       data.frame(MonitoringLocationIdentifier = character(), 
@@ -77,6 +85,90 @@ inventory_wqp <- function(grid, char_names, wqp_args = NULL, max_tries = 3){
   
   return(wqp_inventory_out)
   
+}
+
+
+#' @title Inventory WQP data across the US by characteristic name
+#'
+#' @description
+#' Queries WQP station inventory and datum metadata once per characteristic
+#' name across `countrycode = "US"`, then assigns each station to its enclosing
+#' polygon `id` from `grid_aoi`. Intended for sparse characteristics so empty
+#' grid cells do not trigger thousands of fruitless WQP requests.
+#'
+#' @param grid_aoi sf polygon object containing AOI grid cells with attribute `id`.
+#' @param char_name character string specifying a single WQP characteristic name.
+#' @param wqp_args list of additional arguments passed to `whatWQPdata()`.
+#' @param max_tries integer, maximum retry attempts for transient WQP errors.
+#'
+#' @returns
+#' A data frame matching `inventory_wqp()` output columns, including `grid_id`,
+#' `CharacteristicName`, and `HorizontalCoordinateReferenceSystemDatumName`.
+#'
+inventory_wqp_char <- function(grid_aoi, char_name, wqp_args = NULL, max_tries = 3){
+  if (packageVersion("dataRetrieval") < "2.7.6.9003") {
+    stop(sprintf(paste0("dataRetrieval version %s is installed but this pipeline ",
+                        "requires package 2.7.6.9003. Please update dataRetrieval."),
+                 packageVersion("dataRetrieval")))
+  }
+  char_name <- as.character(unlist(char_name))
+  if (length(char_name) != 1) {
+    stop("inventory_wqp_char() expects a single characteristic name per branch.")
+  }
+  message(sprintf("Inventorying US WQP data for %s", char_name))
+  
+  wqp_args_all <- c(wqp_args, list(countrycode = "US",
+                                   characteristicName = char_name))
+  wqp_inventory <- retry(whatWQPdata(wqp_args_all),
+                         when = "Error:",
+                         max_tries = max_tries) %>%
+    mutate(CharacteristicName = char_name)
+  
+  if (nrow(wqp_inventory) == 0) {
+    return(wqp_inventory %>%
+             mutate(grid_id = character(),
+                    HorizontalCoordinateReferenceSystemDatumName = character()))
+  }
+  
+  site_location_metadata <- tryCatch(
+    retry(
+      whatWQPsites(countrycode = "US",
+                   characteristicName = char_name,
+                   sampleMedia = wqp_args$sampleMedia,
+                   siteType = wqp_args$siteType,
+                   minresults = wqp_args$minresults,
+                   startDateLo = wqp_args$startDateLo,
+                   startDateHi = wqp_args$startDateHi),
+      when = "Error:",
+      max_tries = max_tries
+    ) %>%
+      select(MonitoringLocationIdentifier, HorizontalCoordinateReferenceSystemDatumName) %>%
+      distinct(MonitoringLocationIdentifier, .keep_all = TRUE) %>%
+      filter(MonitoringLocationIdentifier %in% wqp_inventory$MonitoringLocationIdentifier),
+    error = function(e) {
+      data.frame(MonitoringLocationIdentifier = character(),
+                 HorizontalCoordinateReferenceSystemDatumName = character())
+    }
+  )
+  
+  grid_bounds <- map_dfr(seq_len(nrow(grid_aoi)), function(i) {
+    bb <- st_bbox(grid_aoi[i, ])
+    tibble(
+      grid_id = as.character(grid_aoi$id[i]),
+      xmin = unname(bb["xmin"]),
+      ymin = unname(bb["ymin"]),
+      xmax = unname(bb["xmax"]),
+      ymax = unname(bb["ymax"])
+    )
+  })
+  
+  wqp_inventory %>%
+    left_join(site_location_metadata, by = "MonitoringLocationIdentifier") %>%
+    inner_join(grid_bounds,
+               by = join_by(between(lon, xmin, xmax), between(lat, ymin, ymax))) %>%
+    select(-xmin, -ymin, -xmax, -ymax) %>%
+    distinct(MonitoringLocationIdentifier, CharacteristicName, ProviderName,
+             lon, lat, .keep_all = TRUE)
 }
 
 

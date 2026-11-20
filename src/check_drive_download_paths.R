@@ -13,6 +13,9 @@
 #' 
 #' @param project_folder A string containing the parent folder within Google Drive
 #' in which to create the sub folders. This is pulled from the config file.
+#'
+#' @param local_drive Logical; if TRUE, create folders on the local filesystem
+#' mirror instead of Google Drive.
 #' 
 #' @returns this function runs without an explicit return object
 #' 
@@ -21,7 +24,14 @@
 #'                            google_email = p0_workflow_config$google_email,
 #'                            project_folder = p0_workflow_config$drive_project_folder)
 #' 
-check_drive_download_paths <- function(folder, google_email, project_folder) {
+check_drive_download_paths <- function(folder, google_email, project_folder,
+                                       local_drive = FALSE) {
+  if (isTRUE(local_drive)) {
+    target_dir <- file.path(sub("/+$", "", project_folder), folder)
+    dir.create(target_dir, recursive = TRUE, showWarnings = FALSE)
+    dir.create(file.path(target_dir, "stable"), recursive = TRUE, showWarnings = FALSE)
+    return(invisible(target_dir))
+  }
   tryCatch({
     drive_auth(google_email)
     drive_ls(path = paste0(project_folder, folder))

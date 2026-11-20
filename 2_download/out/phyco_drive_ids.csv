@@ -1,0 +1,11 @@
+name,id
+p1_char_names_crosswalk_phyco.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/p1_char_names_crosswalk_phyco.rds
+p1_wqp_inventory_aoi_phyco.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/p1_wqp_inventory_aoi_phyco.rds
+p1_wqp_params_phyco.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/p1_wqp_params_phyco.rds
+p2_site_counts_phyco.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/p2_site_counts_phyco.rds
+p2_wqp_data_aoi_phyco_anon.feather,../drive_mirror/aquamatch_download_wqp/phycocyanin/p2_wqp_data_aoi_phyco_anon.feather
+p1_char_names_crosswalk_phyco_20261120.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/stable/p1_char_names_crosswalk_phyco_20261120.rds
+p1_wqp_inventory_aoi_phyco_20261120.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/stable/p1_wqp_inventory_aoi_phyco_20261120.rds
+p1_wqp_params_phyco_20261120.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/stable/p1_wqp_params_phyco_20261120.rds
+p2_site_counts_phyco_20261120.rds,../drive_mirror/aquamatch_download_wqp/phycocyanin/stable/p2_site_counts_phyco_20261120.rds
+p2_wqp_data_aoi_phyco_anon_20261120.feather,../drive_mirror/aquamatch_download_wqp/phycocyanin/stable/p2_wqp_data_aoi_phyco_anon_20261120.feather

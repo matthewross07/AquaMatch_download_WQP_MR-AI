@@ -51,6 +51,12 @@ p1_targets_list <- list(
     name = p1_wqp_params_sdd,
     command = p1_wqp_params["sdd"]
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_wqp_params_phyco,
+    command = p1_wqp_params["phycocyanin"]
+  ),
   
   
   # Export parameter yaml info ----------------------------------------------
@@ -136,6 +142,20 @@ p1_targets_list <- list(
     cue = tar_cue("always"),
     error = "stop"
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_wqp_params_file_phyco,
+    command = export_single_file(target = p1_wqp_params_phyco,
+                                 drive_path = p0_phyco_output_path,
+                                 stable = p0_workflow_config$phyco_create_stable,
+                                 google_email = p0_workflow_config$google_email,
+                                 date_stamp = p0_date_stamp,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
+    packages = c("tidyverse", "googledrive"),
+    cue = tar_cue("always"),
+    error = "stop"
+  ),
   
   
   # Parameter-characteristic crosswalks -------------------------------------
@@ -178,6 +198,12 @@ p1_targets_list <- list(
   tar_target(
     name = p1_char_names_crosswalk_sdd,
     command = crosswalk_characteristics(p1_wqp_params_sdd)
+  ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_char_names_crosswalk_phyco,
+    command = crosswalk_characteristics(p1_wqp_params_phyco)
   ),
   
   
@@ -269,6 +295,20 @@ p1_targets_list <- list(
     cue = tar_cue("always"),
     error = "stop"
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_char_names_crosswalk_phyco_file,
+    command = export_single_file(target = p1_char_names_crosswalk_phyco,
+                                 drive_path = p0_phyco_output_path,
+                                 stable = p0_workflow_config$phyco_create_stable,
+                                 google_email = p0_workflow_config$google_email,
+                                 date_stamp = p0_date_stamp,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
+    packages = c("tidyverse", "googledrive"),
+    cue = tar_cue("always"),
+    error = "stop"
+  ),
   
   
   # Get a vector of WQP characteristic names to match parameter groups of interest
@@ -317,6 +357,14 @@ p1_targets_list <- list(
   tar_target(
     name = p1_char_names_sdd,
     command = filter_characteristics(p1_char_names_crosswalk_sdd,
+                                     p0_param_groups_select),
+    packages = c("tidyverse", "xml2")
+  ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_char_names_phyco,
+    command = filter_characteristics(p1_char_names_crosswalk_phyco,
                                      p0_param_groups_select),
     packages = c("tidyverse", "xml2")
   ),
@@ -373,6 +421,14 @@ p1_targets_list <- list(
                                            "1_inventory/out"),
     packages = c("tidyverse", "xml2")
   ),
+
+  tar_file(
+    name = p1_similar_char_names_phyco_txt,
+    command = find_similar_characteristics(p1_char_names_phyco,
+                                           "phycocyanin",
+                                           "1_inventory/out"),
+    packages = c("tidyverse", "xml2")
+  ),
   
   
   # Define spatial AOI and grid ---------------------------------------------
@@ -401,7 +457,8 @@ p1_targets_list <- list(
                                  drive_path = p0_general_output_path,
                                  stable = p0_workflow_config$general_create_stable,
                                  google_email = p0_workflow_config$google_email,
-                                 date_stamp = p0_date_stamp),
+                                 date_stamp = p0_date_stamp,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
     packages = c("tidyverse", "googledrive"),
     error = "stop"
   ),
@@ -510,6 +567,19 @@ p1_targets_list <- list(
     error = "continue",
     packages = c("tidyverse", "retry", "sf", "dataRetrieval", "units")
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_wqp_inventory_phyco,
+    command = {
+      inventory_wqp_char(grid_aoi = p1_global_grid_aoi,
+                         char_name = p1_char_names_phyco,
+                         wqp_args = p0_wqp_args)
+    },
+    pattern = map(p1_char_names_phyco),
+    error = "continue",
+    packages = c("tidyverse", "retry", "sf", "dataRetrieval", "units")
+  ),
   
   
   # Subset the WQP inventory to only retain sites within the area of interest
@@ -548,6 +618,12 @@ p1_targets_list <- list(
   tar_target(
     name = p1_wqp_inventory_aoi_tc,
     command = subset_inventory(p1_wqp_inventory_tc, p1_AOI_sf)
+  ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_wqp_inventory_aoi_phyco,
+    command = subset_inventory(p1_wqp_inventory_phyco, p1_AOI_sf)
   ),
   
   
@@ -633,6 +709,20 @@ p1_targets_list <- list(
     cue = tar_cue("always"),
     error = "stop"
   ),
+
+  # Phycocyanin
+  tar_target(
+    name = p1_wqp_inventory_aoi_phyco_file,
+    command = export_single_file(target = p1_wqp_inventory_aoi_phyco,
+                                 drive_path = p0_phyco_output_path,
+                                 stable = p0_workflow_config$phyco_create_stable,
+                                 google_email = p0_workflow_config$google_email,
+                                 date_stamp = p0_date_stamp,
+                                 local_drive = isTRUE(p0_workflow_config$local_drive)),
+    packages = c("tidyverse", "googledrive"),
+    cue = tar_cue("always"),
+    error = "stop"
+  ),
   
   
   # Summarize the data that would come back from the WQP
@@ -677,5 +767,12 @@ p1_targets_list <- list(
     name = p1_wqp_inventory_tc_summary_csv,
     command = summarize_wqp_inventory(p1_wqp_inventory_aoi_tc,
                                       "1_inventory/log/tc_summary_wqp_inventory.csv")
+  ),
+
+  # Phycocyanin
+  tar_file(
+    name = p1_wqp_inventory_phyco_summary_csv,
+    command = summarize_wqp_inventory(p1_wqp_inventory_aoi_phyco,
+                                      "1_inventory/log/phyco_summary_wqp_inventory.csv")
   )
 )

@@ -12,10 +12,12 @@
 default:
   # gmail account to associate with {googledrive} package
   google_email: ""
-  # Create a new stable version of the chlorophyll dataset?
+  local_drive: FALSE
+  # Create a new stable version of the parameter dataset?
   cdom_create_stable: FALSE
   chl_create_stable: FALSE
   doc_create_stable: FALSE
+  phyco_create_stable: FALSE
   tc_create_stable: FALSE
   tss_create_stable: FALSE
   sdd_create_stable: FALSE
@@ -28,11 +30,26 @@ default:
 # Update the stable dataset version for one or more parameters
 admin_update:
   google_email: "therossyndicate@gmail.com"
+  local_drive: FALSE
   cdom_create_stable: FALSE
   chl_create_stable: FALSE
   doc_create_stable: FALSE
+  phyco_create_stable: FALSE
   tc_create_stable: TRUE
   tss_create_stable: FALSE
   sdd_create_stable: FALSE
   general_create_stable: TRUE
   drive_project_folder: "~/aquamatch_download_wqp/"
+# Local mirror mode (avoids interactive Google Drive OAuth)
+local_mode:
+  google_email: ""
+  local_drive: TRUE
+  cdom_create_stable: FALSE
+  chl_create_stable: FALSE
+  doc_create_stable: FALSE
+  phyco_create_stable: TRUE
+  tc_create_stable: FALSE
+  tss_create_stable: FALSE
+  sdd_create_stable: FALSE
+  general_create_stable: TRUE
+  drive_project_folder: "../drive_mirror/aquamatch_download_wqp/"

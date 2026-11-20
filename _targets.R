@@ -28,7 +28,7 @@ config_targets <- list(
   tar_target(
     name = p0_workflow_config,
     # The config package does not like to be used with library()
-    command = config::get(config = "admin_update")
+    command = config::get(config = "local_mode")
   ),
   
   # A standardized system date from the start of the workflow to ensure that
@@ -62,8 +62,8 @@ config_targets <- list(
   tar_target(
     name = p0_param_groups_select,
     command = c(
-      # "chlorophyll", "doc", "sdd", "tss", "cdom",
-      "true_color")
+      # "chlorophyll", "doc", "sdd", "tss", "cdom", "true_color",
+      "phycocyanin")
   ),
   
   
@@ -73,7 +73,7 @@ config_targets <- list(
   # see https://www.waterqualitydata.us/webservices_documentation for more information 
   tar_target(
     name = p0_wqp_args,
-    command = list(sampleMedia = c("Water", "water"),
+    command = list(sampleMedia = "Water",
                    siteType = c("Lake, Reservoir, Impoundment",
                                 "Stream",
                                 "Estuary"),
@@ -91,12 +91,17 @@ config_targets <- list(
   tar_target(
     name = p0_check_drive_parent_folder,
     command = {
-      tryCatch({
-        drive_auth(p0_workflow_config$google_email)
-        drive_ls(p0_workflow_config$drive_project_folder)
-      }, error = function(e) {
-        drive_mkdir(str_sub(p0_workflow_config$drive_project_folder, 1, -2))  
-      })
+      if (isTRUE(p0_workflow_config$local_drive)) {
+        dir.create(p0_workflow_config$drive_project_folder,
+                   recursive = TRUE, showWarnings = FALSE)
+      } else {
+        tryCatch({
+          drive_auth(p0_workflow_config$google_email)
+          drive_ls(p0_workflow_config$drive_project_folder)
+        }, error = function(e) {
+          drive_mkdir(str_sub(p0_workflow_config$drive_project_folder, 1, -2))  
+        })
+      }
     },
     packages = "googledrive",
     cue = tar_cue("always"),
@@ -115,7 +120,8 @@ config_targets <- list(
     command = check_drive_download_paths(
       folder = p0_drive_folders,
       google_email = p0_workflow_config$google_email,
-      project_folder = p0_workflow_config$drive_project_folder
+      project_folder = p0_workflow_config$drive_project_folder,
+      local_drive = isTRUE(p0_workflow_config$local_drive)
     ),
     pattern = map(p0_drive_folders),
     packages = "googledrive",
@@ -187,6 +193,16 @@ config_targets <- list(
       paste0(p0_workflow_config$drive_project_folder,
              "true_color/")
       
+    }
+  ),
+
+  tar_target(
+    name = p0_phyco_output_path,
+    command = {
+      p0_check_drive_parent_folder
+      p0_check_drive_paths
+      paste0(p0_workflow_config$drive_project_folder,
+             "phycocyanin/")
     }
   )
   

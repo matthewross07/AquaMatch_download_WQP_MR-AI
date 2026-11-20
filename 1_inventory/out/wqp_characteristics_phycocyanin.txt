@@ -1,0 +1,10 @@
+The following characteristics are already included in the WQP codes cfg file: 
+Algae-Phycocyanin
+Phycocyanin
+Phycocyanin (probe)
+Phycocyanin (probe relative fluorescence)
+Phycocyanins
+
+
+The following characteristics might be relevant to the selected parameter and are not included in the WQP codes cfg file: 
+Allophycocyanin
